@@ -22,8 +22,8 @@ config.read('config.ini')
 
 bucketname=config['bucket']['bucketname']
 itemnames=config['bucket']['itemnames'].split(',')
-aws_access_key_id=config['aws_credentials']['aws_access_key_id']
-aws_secret_access_key=config['aws_credentials']['aws_secret_access_key']
+aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID']
+aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']
 
 #paths to sql files
 DML_path='./sql/DML/'
@@ -98,26 +98,37 @@ try:
     # Insert step
     stream_dataframe_to_postgres_table(connection=connection,dataframe=df,table='landing_performance.stg_performance')
 
-    # Deduplication step
-    cursor.execute('CREATE TABLE landing_performance.performance_for_insert (LIKE landing_performance.stg_performance)')
+    #Create table for_insert table
+    sqlfile = open(DDL_path +'landing_create_performance_for_insert.sql', 'r')
+    cursor.execute(sqlfile.read())
+    logging.info('Created landing_performance.performance_for_insert like landing_performance.stg_performance')
+
     sqlfile = open(DML_path +'landing_insert_performance_for_insert.sql', 'r')
     cursor.execute(sqlfile.read())
+    logging.info('Removed possible duplicates and inserting in landing_performance.performance_for_insert')
+
     
     sqlfile = open(DDL_path +'bip_create_article_performance.sql', 'r')
     cursor.execute(sqlfile.read())
+    logging.info('Created bip_performance.article_performance')
+
     sqlfile = open(DDL_path +'bip_create_user_performance.sql', 'r')
     cursor.execute(sqlfile.read())
-    #Transformation st
-    # sqlfile = open(DML_path +'landing_insert_performance_for_insert.sql', 'r')
-    # cursor.execute(sqlfile.read())    
+    logging.info('Created bip_performance.user_performance')
+    
+    #Transformation step
     sqlfile = open(DML_path +'bip_insert_article_performance.sql', 'r')
     cursor.execute(sqlfile.read())
+    logging.info('Data inserted in  bip_performance.article_performance')
+
     sqlfile = open(DML_path +'bip_insert_user_performance.sql', 'r')
     cursor.execute(sqlfile.read())
+    logging.info('Data inserted in  bip_performance.user_performance')
 
 except (Exception, psycopg2.Error) as error:
     logging.error('Error while connecting to PostgreSQL:{error}',error=error)
 
 finally:
     connection.close()
+    logging.info('Pipeline Finished')
     logging.info('Clossing Connection')
