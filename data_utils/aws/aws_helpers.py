@@ -27,7 +27,6 @@ def read_from_s3_to_pandas(client,bucketname,itemname,date_column):
 
     obj = client.get_object(Bucket=bucketname, Key=itemname)
     
-
     logging.info('Column {date_column} will be parsed as date'.format(date_column=date_column))
 
     df = pd.read_csv(io.BytesIO(obj['Body'].read()),
@@ -52,7 +51,6 @@ def explode_column(df,column_to_explode):
     json_explode=json_explode.rename(lambda col_name: 'attributes_'+ col_name, axis='columns')
     df_exploded=pd.concat([df, json_explode], axis=1)
     
-
     logging.info('New columns names will be prefixed with {column_to_explode}_'.format(column_to_explode=column_to_explode.lower()))
 
     logging.info('New Columns are {columns}'.format(columns=df_exploded.columns))
